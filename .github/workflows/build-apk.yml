@@ -1,3 +1,4 @@
+
 name: Build ENVI Reel Tracker APK
 
 on:
@@ -31,6 +32,25 @@ jobs:
       - name: Extract source ZIP
         run: unzip -o EnviReelTracker_Secure_V2.zip
 
+      - name: Fix subtitle padding compile error
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("EnviReelTracker/app/src/main/java/com/envisagepharma/envireeltracker/MainActivity.kt")
+          s = p.read_text()
+
+          old = 'text("LEARN  •  TRACK  •  TAKE CONTROL", 12, muted, true).setPadding(0, dp(3), 0, dp(18))'
+          new = 'text("LEARN  •  TRACK  •  TAKE CONTROL", 12, muted, true)'
+
+          if s.count(old) != 1:
+              raise SystemExit(f"Expected exactly one faulty line; found {s.count(old)}")
+
+          p.write_text(s.replace(old, new, 1))
+          print("Subtitle padding error fixed.")
+
+          PY
+
       - name: Inspect source
         run: |
           echo "=== MAIN ACTIVITY ==="
@@ -39,7 +59,7 @@ jobs:
           cat EnviReelTracker/app/src/main/res/xml/accessibility_service_config.xml
           echo "=== ACCESSIBILITY SERVICE ==="
           nl -ba EnviReelTracker/app/src/main/java/com/envisagepharma/envireeltracker/ReelAccessibilityService.kt | sed -n '1,220p'
-     
+
       - name: Build Debug APK
         run: gradle -p EnviReelTracker assembleDebug
 

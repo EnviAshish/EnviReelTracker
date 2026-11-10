@@ -31,6 +31,15 @@ jobs:
       - name: Extract source ZIP
         run: unzip -o EnviReelTracker_Secure_V2.zip
 
+      - name: Inspect source
+        run: |
+          echo "=== MAIN ACTIVITY ==="
+          nl -ba EnviReelTracker/app/src/main/java/com/envisagepharma/envireeltracker/MainActivity.kt | sed -n '1,120p'
+          echo "=== ACCESSIBILITY CONFIG ==="
+          cat EnviReelTracker/app/src/main/res/xml/accessibility_service_config.xml
+          echo "=== ACCESSIBILITY SERVICE ==="
+          nl -ba EnviReelTracker/app/src/main/java/com/envisagepharma/envireeltracker/ReelAccessibilityService.kt | sed -n '1,220p'
+     
       - name: Build Debug APK
         run: gradle -p EnviReelTracker assembleDebug
 

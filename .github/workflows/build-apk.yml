@@ -48,7 +48,34 @@ jobs:
 
           p.write_text(s.replace(old, new, 1))
           print("Subtitle padding error fixed.")
+          PY
 
+      - name: Fix tablet responsive layout
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("EnviReelTracker/app/src/main/java/com/envisagepharma/envireeltracker/MainActivity.kt")
+          s = p.read_text()
+
+          old_padding = 'setPadding(dp(20), dp(22), dp(20), dp(30))'
+          new_padding = 'setPadding(dp(20), dp(56), dp(20), dp(30))'
+
+          if s.count(old_padding) != 1:
+              raise SystemExit("Header spacing line not found exactly once.")
+
+          s = s.replace(old_padding, new_padding, 1)
+
+          old_width = 'resources.configuration.screenWidthDp >= 600'
+          new_width = 'resources.configuration.screenWidthDp >= 900'
+
+          if s.count(old_width) != 1:
+              raise SystemExit("Responsive width condition not found exactly once.")
+
+          s = s.replace(old_width, new_width, 1)
+
+          p.write_text(s)
+          print("Responsive layout and header spacing fixed.")
           PY
 
       - name: Inspect source

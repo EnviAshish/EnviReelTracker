@@ -1,4 +1,57 @@
 
+name: Build ENVI Reel Tracker APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+
+      - name: Install Android SDK packages
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Extract source ZIP
+        run: unzip -o EnviReelTracker_Secure_V2.zip
+
+      - name: Fix subtitle padding compile error
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("EnviReelTracker/app/src/main/java/com/envisagepharma/envireeltracker/MainActivity.kt")
+          s = p.read_text()
+
+          old = 'text("LEARN  •  TRACK  •  TAKE CONTROL", 12, muted, true).setPadding(0, dp(3), 0, dp(18))'
+          new = 'text("LEARN  •  TRACK  •  TAKE CONTROL", 12, muted, true)'
+
+          if old in s:
+              s = s.replace(old, new, 1)
+              p.write_text(s)
+              print("Subtitle padding error fixed.")
+          else:
+              print("Subtitle correction already applied or pattern not present.")
+
+          PY
+
       - name: Fix tablet responsive layout
         run: |
           python3 - <<'PY'
@@ -8,7 +61,6 @@
           p = Path("EnviReelTracker/app/src/main/java/com/envisagepharma/envireeltracker/MainActivity.kt")
           s = p.read_text()
 
-          # Increase top spacing below the status bar.
           old_padding = 'setPadding(dp(20), dp(22), dp(20), dp(30))'
           new_padding = 'setPadding(dp(20), dp(56), dp(20), dp(30))'
 
@@ -18,9 +70,8 @@
           elif new_padding in s:
               print("Header spacing already updated.")
           else:
-              print("Header padding pattern not found; leaving it unchanged.")
+              print("Header padding pattern not found; leaving unchanged.")
 
-          # Change tablet 4-column breakpoint to 900dp.
           lines = s.splitlines()
           changed = 0
 
@@ -38,7 +89,6 @@
 
           if changed == 0:
               print("No matching width comparison found.")
-              print("Width-related source lines:")
               for i, line in enumerate(lines):
                   if "screenWidthDp" in line or "smallestScreenWidthDp" in line:
                       print(f"{i + 1}: {line}")
@@ -47,3 +97,21 @@
           p.write_text("\n".join(lines) + "\n")
           print("Tablet responsive layout patch completed.")
           PY
+
+      - name: Inspect source
+        run: |
+          echo "=== MAIN ACTIVITY ==="
+          nl -ba EnviReelTracker/app/src/main/java/com/envisagepharma/envireeltracker/MainActivity.kt | sed -n '1,120p'
+          echo "=== ACCESSIBILITY CONFIG ==="
+          cat EnviReelTracker/app/src/main/res/xml/accessibility_service_config.xml
+          echo "=== ACCESSIBILITY SERVICE ==="
+          nl -ba EnviReelTracker/app/src/main/java/com/envisagepharma/envireeltracker/ReelAccessibilityService.kt | sed -n '1,220p'
+
+      - name: Build Debug APK
+        run: gradle -p EnviReelTracker assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: EnviReelTracker-debug-apk
+          path: EnviReelTracker/app/build/outputs/apk/debug/app-debug.apk

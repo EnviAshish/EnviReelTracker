@@ -30,7 +30,7 @@ jobs:
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
       - name: Extract source ZIP
-        run: unzip -o EnviReelTracker_Source.zip
+        run: unzip -o EnviReelTracker_Secure_V2.zip
 
       - name: Build Debug APK
         run: gradle -p EnviReelTracker assembleDebug
